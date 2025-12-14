@@ -21,21 +21,20 @@ COPY . .
 # Install Laravel dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Create the .env file (just so Laravel doesn't crash on boot)
-RUN cp .env.example .env
-
-# Generate Key
-RUN php artisan key:generate --force
-
 # ----------------------------------------------------
-# DELETED: config:cache, route:cache, view:cache
-# We must NOT run these here. We need Laravel to read 
-# the real variables when the server starts.
+# THE FIX: Do not copy the example file. 
+# Just create an empty file. 
+# This forces Laravel to use the Render Environment Variables.
 # ----------------------------------------------------
+RUN touch .env
+
+# Generate Key (This might fail if APP_KEY is not in env, 
+# but we set it in Render, so it should be fine. 
+# If it fails, we remove this line because APP_KEY is already in Render)
+# RUN php artisan key:generate --force  <-- COMMENT THIS OUT
 
 # Expose port 10000
 EXPOSE 10000
 
 # Start the server
-# We run 'config:clear' first to make sure no bad config is stuck
 CMD php artisan config:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=10000
