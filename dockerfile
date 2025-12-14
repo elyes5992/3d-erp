@@ -1,7 +1,7 @@
 # Use PHP 8.2
 FROM php:8.2-cli
 
-# Install system dependencies and Postgres drivers for Supabase
+# Install system dependencies and Postgres drivers
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     unzip \
@@ -21,10 +21,20 @@ COPY . .
 # Install Laravel dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Generate the app key if not present (safeguard)
+# --- THE FIX IS HERE ---
+# Create a .env file from the example so Laravel has something to write to
+RUN cp .env.example .env
+# -----------------------
+
+# Generate the app key
 RUN php artisan key:generate --force
 
-# Expose port 10000 (Render's default)
+# Optimize the application
+RUN php artisan config:cache
+RUN php artisan route:cache
+RUN php artisan view:cache
+
+# Expose port 10000
 EXPOSE 10000
 
 # Start the server
