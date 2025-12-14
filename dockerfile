@@ -1,7 +1,7 @@
 # Use PHP 8.2
 FROM php:8.2-cli
 
-# Install system dependencies and Postgres drivers
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     unzip \
@@ -21,20 +21,22 @@ COPY . .
 # Install Laravel dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# ----------------------------------------------------
-# THE FIX: Do not copy the example file. 
-# Just create an empty file. 
-# This forces Laravel to use the Render Environment Variables.
-# ----------------------------------------------------
+# ----------------------------------------------------------------
+# FIX 1: Create an EMPTY .env file
+# This forces Laravel to use the settings from Render Dashboard
+# instead of reading 127.0.0.1 from a local file.
+# ----------------------------------------------------------------
 RUN touch .env
 
-# Generate Key (This might fail if APP_KEY is not in env, 
-# but we set it in Render, so it should be fine. 
-# If it fails, we remove this line because APP_KEY is already in Render)
-# RUN php artisan key:generate --force  <-- COMMENT THIS OUT
+# ----------------------------------------------------------------
+# FIX 2: Set Permissions
+# This fixes the "500 Server Error" caused by permission denied
+# on the storage folder.
+# ----------------------------------------------------------------
+RUN chmod -R 777 storage bootstrap/cache
 
 # Expose port 10000
 EXPOSE 10000
 
-# Start the server
+# Start command
 CMD php artisan config:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=10000
