@@ -35,6 +35,7 @@ RUN touch .env
 # ----------------------------------------------------------------
 RUN chmod -R 777 storage bootstrap/cache
 
+
 # Expose port 10000
 EXPOSE 10000
 
