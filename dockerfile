@@ -21,21 +21,21 @@ COPY . .
 # Install Laravel dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# --- THE FIX IS HERE ---
-# Create a .env file from the example so Laravel has something to write to
+# Create the .env file (just so Laravel doesn't crash on boot)
 RUN cp .env.example .env
-# -----------------------
 
-# Generate the app key
+# Generate Key
 RUN php artisan key:generate --force
 
-# Optimize the application
-RUN php artisan config:cache
-RUN php artisan route:cache
-RUN php artisan view:cache
+# ----------------------------------------------------
+# DELETED: config:cache, route:cache, view:cache
+# We must NOT run these here. We need Laravel to read 
+# the real variables when the server starts.
+# ----------------------------------------------------
 
 # Expose port 10000
 EXPOSE 10000
 
 # Start the server
-CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=10000
+# We run 'config:clear' first to make sure no bad config is stuck
+CMD php artisan config:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=10000
