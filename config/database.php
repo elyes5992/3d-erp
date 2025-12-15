@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Str;
-use PDO;
+
 
 return [
 
@@ -98,7 +98,7 @@ return [
     'search_path' => 'public',
     'sslmode' => 'require', // <--- IMPORTANT FOR SUPABASE
      'options' => [
-                PDO::ATTR_EMULATE_PREPARES => true,
+                \PDO::ATTR_EMULATE_PREPARES => true,
             ],
 ],
 
