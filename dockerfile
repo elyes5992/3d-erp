@@ -34,4 +34,10 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
+
+# 👇👇👇 THIS IS THE FIX 👇👇👇
+# We must tell Apache to actually READ the .htaccess file
+RUN sed -ri -e 's!AllowOverride None!AllowOverride All!g' /etc/apache2/apache2.conf
+
+# Handle Render's random port assignment
 RUN sed -i 's/80/${PORT}/g' /etc/apache2/ports.conf /etc/apache2/sites-available/*.conf
