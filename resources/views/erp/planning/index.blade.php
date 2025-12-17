@@ -4,12 +4,12 @@
 
 @section('content')
 <div class="mb-6">
-    <button onclick="openCreateModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
-        <i class="fa-solid fa-plus"></i> New Task
+    <button onclick="openCreateModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+        <i class="fa-solid fa-plus"></i><span class="hidden sm:inline">New Task</span>
     </button>
 </div>
 
-<div class="bg-slate-800 rounded-lg shadow-lg border border-slate-700 p-6">
+<div class="bg-slate-800 rounded-lg shadow-lg border border-slate-700 p-4 sm:p-6">
     <div class="space-y-4">
         @forelse($tasks as $task)
         <div class="flex items-center justify-between group p-3 rounded hover:bg-slate-700/50 transition border border-transparent hover:border-slate-700">
@@ -18,11 +18,11 @@
                     <i class="fa-regular {{ $task->is_done ? 'fa-circle-check' : 'fa-circle' }}"></i>
                 </a>
                 <div>
-                     <div class="{{ $task->is_done ? 'line-through text-slate-500' : 'text-white' }} font-medium">{{ $task->content }}</div>
-                     <div class="text-xs text-slate-500">{{ $task->due_date ? \Carbon\Carbon::parse($task->due_date)->format('M d, Y') : 'No due date' }}</div>
+                    <div class="{{ $task->is_done ? 'line-through text-slate-500' : 'text-white' }} font-medium">{{ $task->content }}</div>
+                    <div class="text-xs text-slate-500">{{ $task->due_date ? \Carbon\Carbon::parse($task->due_date)->format('M d, Y') : 'No due date' }}</div>
                 </div>
             </div>
-            
+
             <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
                 <button onclick="openEditModal({{ $task }})" class="text-slate-400 hover:text-white"><i class="fa-solid fa-pen"></i></button>
                 <form action="{{ route('erp.planning.destroy', $task->id) }}" method="POST" onsubmit="confirmDelete(event)" class="inline">
@@ -48,11 +48,11 @@
             <h3 id="modalTitle" class="text-lg font-bold text-white">Add Task</h3>
             <button onclick="closeModal('taskModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        
+
         <form id="taskForm" action="{{ route('erp.planning.store') }}" method="POST" class="p-6 space-y-4">
             @csrf
             <input type="hidden" name="_method" id="formMethod" value="POST">
-            
+
             <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Task Description</label>
                 <input type="text" name="content" id="t_content" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:outline-none focus:border-indigo-500">
@@ -86,16 +86,16 @@
         document.getElementById('taskForm').action = "/planning/" + task.id;
         document.getElementById('formMethod').value = "PUT";
         document.getElementById('t_content').value = task.content;
-        
+
         // Format date for input type=date
-        if(task.due_date) {
+        if (task.due_date) {
             const date = new Date(task.due_date);
             const iso = date.toISOString().split('T')[0];
             document.getElementById('t_due_date').value = iso;
         } else {
             document.getElementById('t_due_date').value = '';
         }
-        
+
         openModal('taskModal');
     }
 </script>

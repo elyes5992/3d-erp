@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Task;
-use App\Models\Setting; 
+use App\Models\Setting;
 
 use Illuminate\Support\Facades\DB;
 
@@ -14,27 +14,28 @@ class ErpController extends Controller
 {
     // --- DASHBOARD ---
     public function dashboard()
-    {
-        // Stats for dashboard
-        $products = Product::all();
-        $stats = [
-            'total' => $products->count(),
-            'printing' => $products->where('status', 'Printing')->count(),
-            'ideas' => $products->where('status', 'Idea')->count(),
-            'done' => $products->where('status', 'Done')->count(),
-        ];
-        
-        // Recent activities
-        $recentProducts = Product::with('category')->latest()->take(5)->get();
-        $recentTasks = Task::latest()->take(5)->get();
+{
+    $products = Product::all();
+    
+    // Exact counts for the 4 Kanban columns
+    $stats = [
+        'idea'         => $products->where('status', 'Idea')->count(),
+        'approved'     => $products->where('status', 'Approved')->count(),
+        'design_ready' => $products->where('status', 'Design Ready')->count(),
+        'printed'      => $products->where('status', 'Printed')->count(),
+    ];
+    
+    // Recent activities
+    $recentProducts = Product::with('category')->latest()->take(5)->get();
+    $recentTasks = Task::latest()->take(5)->get();
 
-         $journal = Setting::firstOrCreate(
+    $journal = Setting::firstOrCreate(
         ['key' => 'team_journal'],
         ['value' => '']
     );
 
-        return view('erp.dashboard', compact('stats', 'recentProducts', 'recentTasks', 'journal'));
-    }
+    return view('erp.dashboard', compact('stats', 'recentProducts', 'recentTasks', 'journal'));
+}
 
     // --- PRODUCTS ---
     public function products()
@@ -46,32 +47,45 @@ class ErpController extends Controller
 
     public function storeProduct(Request $request)
     {
-        Product::create($request->validate([
+        // 1. Validate inputs (removed 'status' from validation)
+        $validated = $request->validate([
             'name' => 'required',
             'category_id' => 'required',
             'pinterest_url' => 'nullable|url',
             'description' => 'nullable',
             'remarks' => 'nullable',
-            'status' => 'required'
-        ]));
+        ]);
+
+        // 2. Force default status
+        $validated['status'] = 'Idea';
+
+        Product::create($validated);
 
         return back()->with('success', 'Product Added!');
     }
 
     public function updateProduct(Request $request, $id)
-    {
-        $product = Product::findOrFail($id);
-        $product->update($request->validate([
-            'name' => 'required',
-            'category_id' => 'required',
-            'pinterest_url' => 'nullable|url',
-            'description' => 'nullable',
-            'remarks' => 'nullable',
-            'status' => 'required'
-        ]));
+{
+    $product = Product::findOrFail($id);
+    
+    // 1. Validate inputs (removed 'status' - we generally change status via Kanban now)
+    $validated = $request->validate([
+        'name' => 'required',
+        'category_id' => 'required',
+        'pinterest_url' => 'nullable|url',
+        'description' => 'nullable',
+        'remarks' => 'nullable',
+    ]);
 
-        return back()->with('success', 'Product Updated!');
-    }
+    // Note: We do NOT update status here. 
+    // If you want to allow status editing in the modal, add 'status' => 'nullable' 
+    // to validation and check if $request->status exists. 
+    // For now, we assume status is only moved via Kanban.
+
+    $product->update($validated);
+
+    return back()->with('success', 'Product Updated!');
+}
 
     public function destroyProduct($id)
     {
@@ -99,7 +113,7 @@ class ErpController extends Controller
     {
         $category = Category::findOrFail($id);
         $category->update($request->validate([
-            'name' => 'required|unique:categories,name,'.$id,
+            'name' => 'required|unique:categories,name,' . $id,
             'color' => 'nullable'
         ]));
         return back()->with('success', 'Category Updated!');
@@ -138,34 +152,34 @@ class ErpController extends Controller
     }
 
     public function updateJournal(Request $request)
-{
-    Setting::updateOrCreate(
-        ['key' => 'team_journal'],
-        ['value' => $request->content]
-    );
+    {
+        Setting::updateOrCreate(
+            ['key' => 'team_journal'],
+            ['value' => $request->content]
+        );
 
-    return back()->with('success', 'Shared journal updated!');
-}
+        return back()->with('success', 'Shared journal updated!');
+    }
 
-  public function toggleTask($id)
-{
-    // 1. Direct SQL update to flip the boolean in Postgres
-    // "NOT is_done" turns true->false and false->true
-    DB::update('UPDATE tasks SET is_done = NOT is_done WHERE id = ?', [$id]);
+    public function toggleTask($id)
+    {
+        // 1. Direct SQL update to flip the boolean in Postgres
+        // "NOT is_done" turns true->false and false->true
+        DB::update('UPDATE tasks SET is_done = NOT is_done WHERE id = ?', [$id]);
 
-    // 2. Return back with headers that force the browser to NOT use cache
-    return back()->withHeaders([
-        'Cache-Control' => 'no-cache, no-store, must-revalidate',
-        'Pragma' => 'no-cache',
-        'Expires' => '0',
-    ]);
-}
+        // 2. Return back with headers that force the browser to NOT use cache
+        return back()->withHeaders([
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
+    }
 
- public function kanban()
+    public function kanban()
     {
         // Define your exact stages here
         $columns = ['Idea', 'Approved', 'Design Ready', 'Printed'];
-        
+
         // Get all products
         $products = Product::all();
 
