@@ -1,3 +1,5 @@
+import defaultTheme from 'tailwindcss/defaultTheme'; 
+
 /** @type {import('tailwindcss').Config} */
 export default {
     content: [
@@ -17,7 +19,7 @@ export default {
                 }
             },
             fontFamily: {
-                sans: ['Inter', 'sans-serif'],
+                sans: ['Space Grotesk', ...defaultTheme.fontFamily.sans],
             }
         },
     },

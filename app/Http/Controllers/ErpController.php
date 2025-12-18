@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Category;
 use App\Models\Task;
 use App\Models\Setting;
+use App\Models\Subtask;
 
 use Illuminate\Support\Facades\DB;
 
@@ -14,28 +15,28 @@ class ErpController extends Controller
 {
     // --- DASHBOARD ---
     public function dashboard()
-{
-    $products = Product::all();
-    
-    // Exact counts for the 4 Kanban columns
-    $stats = [
-        'idea'         => $products->where('status', 'Idea')->count(),
-        'approved'     => $products->where('status', 'Approved')->count(),
-        'design_ready' => $products->where('status', 'Design Ready')->count(),
-        'printed'      => $products->where('status', 'Printed')->count(),
-    ];
-    
-    // Recent activities
-    $recentProducts = Product::with('category')->latest()->take(5)->get();
-    $recentTasks = Task::latest()->take(5)->get();
+    {
+        $products = Product::all();
 
-    $journal = Setting::firstOrCreate(
-        ['key' => 'team_journal'],
-        ['value' => '']
-    );
+        // Exact counts for the 4 Kanban columns
+        $stats = [
+            'idea'         => $products->where('status', 'Idea')->count(),
+            'approved'     => $products->where('status', 'Approved')->count(),
+            'design_ready' => $products->where('status', 'Design Ready')->count(),
+            'printed'      => $products->where('status', 'Printed')->count(),
+        ];
 
-    return view('erp.dashboard', compact('stats', 'recentProducts', 'recentTasks', 'journal'));
-}
+        // Recent activities
+        $recentProducts = Product::with('category')->latest()->take(5)->get();
+        $recentTasks = Task::latest()->take(5)->get();
+
+        $journal = Setting::firstOrCreate(
+            ['key' => 'team_journal'],
+            ['value' => '']
+        );
+
+        return view('erp.dashboard', compact('stats', 'recentProducts', 'recentTasks', 'journal'));
+    }
 
     // --- PRODUCTS ---
     public function products()
@@ -54,6 +55,7 @@ class ErpController extends Controller
             'pinterest_url' => 'nullable|url',
             'description' => 'nullable',
             'remarks' => 'nullable',
+            'cost' => 'nullable|numeric'
         ]);
 
         // 2. Force default status
@@ -65,27 +67,28 @@ class ErpController extends Controller
     }
 
     public function updateProduct(Request $request, $id)
-{
-    $product = Product::findOrFail($id);
-    
-    // 1. Validate inputs (removed 'status' - we generally change status via Kanban now)
-    $validated = $request->validate([
-        'name' => 'required',
-        'category_id' => 'required',
-        'pinterest_url' => 'nullable|url',
-        'description' => 'nullable',
-        'remarks' => 'nullable',
-    ]);
+    {
+        $product = Product::findOrFail($id);
 
-    // Note: We do NOT update status here. 
-    // If you want to allow status editing in the modal, add 'status' => 'nullable' 
-    // to validation and check if $request->status exists. 
-    // For now, we assume status is only moved via Kanban.
+        // 1. Validate inputs (removed 'status' - we generally change status via Kanban now)
+        $validated = $request->validate([
+            'name' => 'required',
+            'category_id' => 'required',
+            'pinterest_url' => 'nullable|url',
+            'description' => 'nullable',
+            'remarks' => 'nullable',
+            'cost' => 'nullable|numeric'
+        ]);
 
-    $product->update($validated);
+        // Note: We do NOT update status here. 
+        // If you want to allow status editing in the modal, add 'status' => 'nullable' 
+        // to validation and check if $request->status exists. 
+        // For now, we assume status is only moved via Kanban.
 
-    return back()->with('success', 'Product Updated!');
-}
+        $product->update($validated);
+
+        return back()->with('success', 'Product Updated!');
+    }
 
     public function destroyProduct($id)
     {
@@ -128,17 +131,54 @@ class ErpController extends Controller
     // --- PLANNING / TASKS ---
     public function planning()
     {
-        $tasks = Task::orderBy('is_done', 'asc')->latest()->get();
-        return view('erp.planning.index', compact('tasks'));
+        // 1. Overdue
+        $overdueTasks = Task::with('subtasks') // <--- ADD THIS
+            ->where('is_done', 'false')
+            ->where('due_date', '<', now()->startOfDay())
+            ->orderBy('priority', 'desc')
+            ->get();
+
+        // 2. Today
+        $todayTasks = Task::with('subtasks') // <--- ADD THIS
+            ->where('is_done', 'false')
+            ->whereDate('due_date', now())
+            ->orderBy('priority', 'desc')
+            ->get();
+
+        // 3. Upcoming
+        $upcomingTasks = Task::with('subtasks') // <--- ADD THIS
+            ->where('is_done', 'false')
+            ->where('due_date', '>', now())
+            ->orderBy('due_date', 'asc')
+            ->get();
+
+        // 4. Completed
+        $completedTasks = Task::with('subtasks') // <--- ADD THIS
+            ->where('is_done', 'true')
+            ->latest()
+            ->take(10)
+            ->get();
+
+        return view('erp.planning.index', compact('overdueTasks', 'todayTasks', 'upcomingTasks', 'completedTasks'));
     }
 
-    public function storeTask(Request $request)
+   public function storeTask(Request $request)
     {
-        Task::create([
-            'content' => $request->content,
-            'due_date' => $request->due_date ?? now()
+        $validated = $request->validate([
+            'content' => 'required|string|max:255',
+            'due_date' => 'nullable|date',
+            'priority' => 'required|in:low,medium,high'
         ]);
-        return back()->with('success', 'Task Added!');
+
+        Task::create([
+            'content' => $validated['content'],
+            'due_date' => $validated['due_date'],
+            'priority' => $validated['priority'],
+            // REMOVED 'is_done' => false
+            // We let the database default (which is false) handle this.
+        ]);
+
+        return back()->with('success', 'Task Created!');
     }
 
     public function updateTask(Request $request, $id)
@@ -146,9 +186,18 @@ class ErpController extends Controller
         $task = Task::findOrFail($id);
         $task->update([
             'content' => $request->content,
-            'due_date' => $request->due_date
+            'due_date' => $request->due_date,
+            'priority' => $request->priority // New field
         ]);
         return back()->with('success', 'Task Updated!');
+    }
+
+    
+
+    public function destroySubtask($id)
+    {
+        Subtask::findOrFail($id)->delete();
+        return back()->with('success', 'Subtask deleted');
     }
 
     public function updateJournal(Request $request)

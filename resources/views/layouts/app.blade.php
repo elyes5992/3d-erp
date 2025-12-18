@@ -10,12 +10,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- REMOVED: The CDN script and the tailwind.config script -->
 
     <!-- ADDED: Vite Directive to load compiled CSS -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    <style>
+    <!-- <style>
         /* Keep your custom CSS here if you prefer, or move to app.css */
         body {
             font-family: 'Inter', sans-serif;
@@ -44,7 +48,7 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #475569;
         }
-    </style>
+    </style> -->
 </head>
 
 <body class="bg-slate-900 text-slate-200 antialiased h-screen flex overflow-hidden">
