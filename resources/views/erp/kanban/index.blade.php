@@ -96,7 +96,7 @@
                 if (evt.from === evt.to && evt.oldIndex === evt.newIndex) return;
 
                 // Send AJAX request
-                fetch("{{ route('erp.kanban.move') }}", {
+                fetch("{{ route('erp.kanban.update') }}", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",

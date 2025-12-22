@@ -19,13 +19,24 @@
                 
                 <!-- Metadata -->
                 <div class="flex items-center gap-3 mt-1.5">
+                    
+                    <!-- Priority Badge -->
                     @if(!$task->is_done)
                         @if($task->priority == 'high') <span class="text-[10px] font-bold text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">HIGH</span>
                         @elseif($task->priority == 'medium') <span class="text-[10px] font-bold text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">MED</span>
                         @endif
                     @endif
+
+                    <!-- Due Date -->
                     <span class="text-[10px] {{ $status == 'overdue' ? 'text-red-400 font-bold' : 'text-slate-500' }}">
-                        {{ $task->due_date ? $task->due_date->format('M d') : '' }}
+                        @if($task->due_date)
+                            <i class="fa-regular fa-clock mr-1"></i>{{ $task->due_date->format('M d') }}
+                        @endif
+                    </span>
+
+                    <!-- NEW: Created Date -->
+                    <span class="text-[10px] text-slate-600 border-l border-slate-700 pl-2" title="Created on {{ $task->created_at->format('M d, Y h:i A') }}">
+                        Added {{ $task->created_at->diffForHumans() }}
                     </span>
                 </div>
             </div>

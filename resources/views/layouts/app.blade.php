@@ -51,7 +51,7 @@
     </style> -->
 </head>
 
-<body class="bg-slate-900 text-slate-200 antialiased h-screen flex overflow-hidden">
+<body class="font-sans bg-slate-900 text-slate-200 antialiased h-screen flex overflow-hidden">
 
     <!-- Mobile Overlay -->
     <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden hidden" onclick="toggleSidebar()"></div>
